@@ -1,0 +1,117 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-brand-50: #F4F1DE;
+  --color-brand-100: #F2CC8F;
+  --color-brand-400: #81B29A;
+  --color-brand-500: #2A9134;
+  --color-brand-600: #3D405B;
+  --color-brand-900: #000000;
+  --color-brand-950: #FFFFFF;
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  body {
+    @apply text-zinc-950 antialiased selection:bg-[#EDD892] selection:text-zinc-950 dark:text-zinc-50 dark:selection:bg-[#EDD892] dark:selection:text-zinc-950;
+    background:
+      linear-gradient(to right, rgba(24, 24, 27, 0.055) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(24, 24, 27, 0.055) 1px, transparent 1px),
+      #f7f7f0;
+    background-size: 28px 28px;
+    font-family: "Bahnschrift", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  }
+
+  .dark body {
+    background:
+      linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+      #070806;
+    background-size: 28px 28px;
+  }
+
+  h1, h2, h3, h4, p, span, button, input, textarea, select, a, .tracking-tight, .tracking-wide, .tracking-wider, .tracking-widest {
+    letter-spacing: 0 !important;
+  }
+}
+
+/* ── Keyframes ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ── Animation classes ── */
+.animate-fade-up { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in { animation: fadeIn 0.4s ease both; }
+.animate-scale-in { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Stagger delays */
+.delay-75 { animation-delay: 75ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-300 { animation-delay: 300ms; }
+
+/* ── Glass UI ── */
+.glass-panel {
+  @apply bg-[#f7f7f0]/95 backdrop-blur-md border border-zinc-950/15 shadow-none
+         dark:bg-zinc-950/90 dark:border-white/15;
+  border-radius: 8px !important;
+}
+.glass-card {
+  @apply bg-[#fbfbf5]/95 backdrop-blur-sm border border-zinc-950/15 shadow-none transition-all duration-300
+         dark:bg-[#0d0f0b]/95 dark:border-white/15 dark:hover:border-brand-500/60;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+}
+.glass-input {
+  @apply bg-white/80 border border-zinc-950/20 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all
+         dark:bg-black/30 dark:border-white/15 dark:focus:border-brand-500;
+  border-radius: 8px !important;
+}
+
+.mechanik-panel {
+  @apply border border-zinc-950/20 bg-[#fbfbf5]/95 dark:border-white/15 dark:bg-[#0d0f0b]/95;
+  border-radius: 8px;
+}
+
+.mechanik-label {
+  @apply text-[11px] font-black uppercase text-zinc-500 dark:text-zinc-400;
+}
+
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-zinc-300 dark:bg-zinc-700 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-zinc-400 dark:bg-zinc-600; }
+
+/* ── Utilities ── */
+.font-display { font-family: "Bahnschrift", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+.text-brand-gradient {
+  background: linear-gradient(90deg, #F4F1DE 0%, #2A9134 25%, #3D405B 50%, #81B29A 75%, #F2CC8F 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.dark .text-brand-gradient {
+  background: linear-gradient(90deg, #000000 0%, #ffffff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media print {
+  .no-print { display: none !important; }
+}
