@@ -131,15 +131,19 @@ export default function Profile() {
       </div>
 
       {/* Print-Only Resume Template */}
-      <div className="print-resume w-full">
-        <div className="p-10 bg-white text-slate-900 font-sans" style={{ maxWidth: "800px", margin: "0 auto" }}>
-          <div className="border-b-4 border-brand-600 pb-6 mb-8 flex justify-between items-start gap-8">
+      <div className="print-resume w-full no-scrollbar overflow-x-auto mt-8 border-t border-zinc-200/50 dark:border-zinc-800/50 pt-8">
+        <div className="no-print mb-4">
+          <h3 className="font-display font-bold text-xl text-zinc-900 dark:text-white">Resume Preview</h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">Review how your exported resume looks. Use the Export button above to print/save as PDF.</p>
+        </div>
+        <div className="mx-auto p-5 sm:p-10 bg-white text-slate-950 font-sans shadow-md border border-slate-200 rounded-2xl print:shadow-none print:border-none print:p-0 print:rounded-none" style={{ maxWidth: "800px" }}>
+          <div className="border-b-4 border-brand-600 pb-6 mb-8 flex flex-col sm:flex-row justify-between sm:items-start gap-4 sm:gap-8">
             <div>
-              <h1 className="text-4xl font-extrabold text-slate-900 m-0 tracking-tight">{profile.name || "Your Name"}</h1>
-              <h2 className="text-xl font-semibold text-brand-600 mt-2">{profile.title || "Your Title"}</h2>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 m-0 tracking-tight leading-tight">{profile.name || "Your Name"}</h1>
+              <h2 className="text-lg sm:text-xl font-semibold text-brand-600 mt-2">{profile.title || "Your Title"}</h2>
             </div>
             {(profile.github || profile.website) && (
-              <div className="text-right text-sm text-slate-500 space-y-1 font-medium">
+              <div className="text-left sm:text-right text-xs sm:text-sm text-slate-500 space-y-1 font-medium break-all max-w-full sm:max-w-[300px]">
                 {profile.website && <div>{profile.website}</div>}
                 {profile.github && <div>{profile.github}</div>}
               </div>
@@ -172,13 +176,13 @@ export default function Profile() {
               <div className="space-y-4">
                 {activeProjects.map(project => (
                   <div key={project.id} className="border-b border-slate-100 pb-4">
-                    <div className="flex justify-between gap-6">
-                      <div>
+                    <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-6">
+                      <div className="min-w-0 flex-1">
                         <h4 className="font-bold text-slate-900 text-base">{project.name}</h4>
                         {project.desc && <p className="text-sm text-slate-600 leading-relaxed mt-1">{project.desc}</p>}
                       </div>
                       {(project.link || project.github) && (
-                        <div className="text-right text-xs text-slate-500 shrink-0 space-y-1">
+                        <div className="text-left sm:text-right text-xs text-slate-500 shrink-0 space-y-1 max-w-full sm:max-w-[250px] break-all">
                           {project.link && <div>{project.link}</div>}
                           {project.github && <div>{project.github}</div>}
                         </div>

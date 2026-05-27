@@ -7,6 +7,7 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
@@ -75,7 +76,15 @@ export const AuthProvider = ({ children }) => {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
-    return signInWithPopup(auth, provider);
+    try {
+      return await signInWithPopup(auth, provider);
+    } catch (err) {
+      if (err.code === "auth/popup-blocked") {
+        console.warn("Popup blocked, falling back to signInWithRedirect");
+        return await signInWithRedirect(auth, provider);
+      }
+      throw err;
+    }
   };
 
   const handleForgotPassword = async (email) => {

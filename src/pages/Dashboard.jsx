@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Zap, Award, TrendingUp, Target, Bell, Plus, CheckCircle2, Trash2, ChevronDown } from "lucide-react";
+import { BookOpen, Zap, Award, TrendingUp, Target, Bell, Plus, CheckCircle2, Trash2, ChevronDown, Flame, ClipboardCheck } from "lucide-react";
 import { useData } from "../contexts/DataContext";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -66,7 +66,7 @@ export default function Dashboard() {
   const weekEndLabel = new Date();
   weekEndLabel.setDate(weekEndLabel.getDate() + (7 - weekEndLabel.getDay()));
 
-  const noteDates = Object.keys(notes || {});
+  const noteDates = useMemo(() => [...new Set((notes || []).map(n => n.date).filter(Boolean))], [notes]);
   const noteSet = useMemo(() => new Set(noteDates), [noteDates]);
   let currentDailyStreak = 0;
   for (let offset = 0; ; offset += 1) {
@@ -239,7 +239,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div>
-              <p className={`${typeof s.value === "string" ? "text-3xl truncate" : "text-4xl"} font-display font-bold text-zinc-900 dark:text-white mb-1`}>{s.value}</p>
+              <p className={`${typeof s.value === "string" ? "text-xl sm:text-2xl lg:text-3xl break-words line-clamp-2" : "text-3xl sm:text-4xl"} font-display font-bold text-zinc-900 dark:text-white mb-1`}>{s.value}</p>
               <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{s.label}</p>
             </div>
           </div>
@@ -339,17 +339,17 @@ export default function Dashboard() {
              <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg"><Zap size={18} /></div>
+                    <div className="p-2 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-lg"><Flame size={18} /></div>
                     <span className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Daily Streak</span>
                   </div>
                   <span className="font-bold text-lg text-zinc-900 dark:text-white">{currentDailyStreak}</span>
                 </div>
-                <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-sky-50/70 dark:bg-sky-500/10 border border-sky-200/70 dark:border-sky-500/20">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg"><Award size={18} /></div>
-                  <span className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Goals Completed</span>
+                    <div className="p-2 bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 rounded-lg"><ClipboardCheck size={18} /></div>
+                    <span className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Goals Completed</span>
                   </div>
-                  <span className="font-bold text-lg text-zinc-900 dark:text-white">{totalGoalsCompleted}</span>
+                  <span className="font-bold text-lg text-sky-700 dark:text-sky-300">{totalGoalsCompleted}</span>
                 </div>
              </div>
           </div>
@@ -413,7 +413,7 @@ export default function Dashboard() {
           <h3 className="font-display font-bold text-sm text-zinc-500 dark:text-zinc-400 mb-6 uppercase tracking-widest">Skill Distribution</h3>
           {categoryData.length >= 3 ? (
             <ResponsiveContainer width="100%" height={240}>
-              <RadarChart data={categoryData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <RadarChart data={categoryData} margin={{ top: 10, right: 40, bottom: 10, left: 40 }}>
                 <PolarGrid stroke={chartTheme.grid} />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: chartTheme.text, fontSize: 11, fontWeight: 500 }} />
                 <Radar name="Avg Progress" dataKey="avg" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} strokeWidth={2} />

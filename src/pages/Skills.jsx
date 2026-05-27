@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Search, Trash2, Check, TrendingUp, Filter, ExternalLink, ChevronDown, BookOpen } from "lucide-react";
+import { Plus, Search, Trash2, Check, TrendingUp, Filter, ExternalLink, ChevronDown, BookOpen, Pencil, X } from "lucide-react";
 import { useData } from "../contexts/DataContext";
 
 const fadeUp = {
@@ -23,6 +23,7 @@ export default function Skills() {
   const [skillName, setSkillName] = useState("");
   const [category, setCategory] = useState("");
   const [level, setLevel] = useState("Beginner"); // Beginner, Intermediate, Expert
+  const [editingSkillId, setEditingSkillId] = useState(null);
   
   const levels = {
     Beginner: 33,
@@ -90,23 +91,67 @@ export default function Skills() {
       return;
     }
     const initialProgress = levels[level];
-    const newSkill = {
-      id: Date.now(),
-      name: skillName.trim(),
-      category: category.trim(),
-      xp: 0,
-      level: 1,
-      progress: initialProgress,
-      history: [{ date: new Date().toISOString(), progress: initialProgress, note: `Initial level set to ${level}` }],
-      resources: []
-    };
-    setSkills(p => [newSkill, ...p]);
-    addActivityEvent({ type: "skill", skillId: newSkill.id, skillName: newSkill.name, label: `Added ${level} skill` });
-    setSkillName(""); setCategory(""); setLevel("Beginner");
-    addToast(`"${newSkill.name}" added!`, "success");
-    if (initialProgress === 100) {
-      setCelebrationSkill({ name: newSkill.name, category: newSkill.category });
+
+    if (editingSkillId) {
+      setSkills(prev => prev.map(s => {
+        if (s.id === editingSkillId) {
+          const progressChanged = s.progress !== initialProgress;
+          const historyEntry = progressChanged 
+            ? { date: new Date().toISOString(), progress: initialProgress, note: `Level updated to ${level} during edit` }
+            : null;
+          
+          return {
+            ...s,
+            name: skillName.trim(),
+            category: category.trim(),
+            progress: initialProgress,
+            xp: initialProgress,
+            history: historyEntry ? [historyEntry, ...(s.history || [])] : (s.history || [])
+          };
+        }
+        return s;
+      }));
+      addActivityEvent({ type: "skill", skillId: editingSkillId, skillName: skillName.trim(), label: `Edited skill and set level to ${level}` });
+      setEditingSkillId(null);
+      setSkillName(""); setCategory(""); setLevel("Beginner");
+      addToast(`"${skillName.trim()}" updated!`, "success");
+      if (initialProgress === 100) {
+        setCelebrationSkill({ name: skillName.trim(), category: category.trim() });
+      }
+    } else {
+      const newSkill = {
+        id: Date.now(),
+        name: skillName.trim(),
+        category: category.trim(),
+        xp: initialProgress,
+        level: level === "Expert" ? 3 : (level === "Intermediate" ? 2 : 1),
+        progress: initialProgress,
+        history: [{ date: new Date().toISOString(), progress: initialProgress, note: `Initial level set to ${level}` }],
+        resources: []
+      };
+      setSkills(p => [newSkill, ...p]);
+      addActivityEvent({ type: "skill", skillId: newSkill.id, skillName: newSkill.name, label: `Added ${level} skill` });
+      setSkillName(""); setCategory(""); setLevel("Beginner");
+      addToast(`"${newSkill.name}" added!`, "success");
+      if (initialProgress === 100) {
+        setCelebrationSkill({ name: newSkill.name, category: newSkill.category });
+      }
     }
+  };
+
+  const startEditSkill = (skill) => {
+    setEditingSkillId(skill.id);
+    setSkillName(skill.name);
+    setCategory(skill.category);
+    setLevel(getLevelFromProgress(skill.progress));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelEditSkill = () => {
+    setEditingSkillId(null);
+    setSkillName("");
+    setCategory("");
+    setLevel("Beginner");
   };
 
   const deleteSkill = (id, name) => {
@@ -181,10 +226,10 @@ export default function Skills() {
         <div className="absolute inset-x-0 top-0 h-1 bg-brand-500 pointer-events-none" />
         
         <h2 className="font-display font-bold text-xl mb-6 flex items-center gap-2 text-zinc-900 dark:text-white">
-          <BookOpen size={20} className="text-brand-500" /> Add New Skill
+          <BookOpen size={20} className="text-brand-500" /> {editingSkillId ? "Edit Skill" : "Add New Skill"}
         </h2>
         <form onSubmit={addSkill} className="grid grid-cols-1 sm:grid-cols-12 gap-4 relative z-10">
-          <div className="sm:col-span-4">
+          <div className={`${editingSkillId ? "sm:col-span-3" : "sm:col-span-4"}`}>
             <input placeholder="Skill name (e.g. React)" value={skillName} onChange={e=>setSkillName(e.target.value)} 
               className="w-full px-4 py-3.5 rounded-xl text-sm glass-input outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-brand-500/50" />
           </div>
@@ -193,17 +238,32 @@ export default function Skills() {
               className="w-full px-4 py-3.5 rounded-xl text-sm glass-input outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-brand-500/50" />
             <datalist id="categories-list">{categories.filter(c => c !== "All").map(c => <option key={c} value={c} />)}</datalist>
           </div>
-          <div className="sm:col-span-3">
+          <div className={`${editingSkillId ? "sm:col-span-2" : "sm:col-span-3"}`}>
             <select value={level} onChange={e=>setLevel(e.target.value)}
-              className="w-full px-4 py-3.5 rounded-xl text-sm glass-input outline-none text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-brand-500/50 appearance-none">
-              {Object.keys(levels).map(l => <option key={l} value={l}>{l}</option>)}
+              className="w-full px-4 py-3.5 rounded-xl text-sm glass-input outline-none text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-brand-500/50 appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5Y2EzYWYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWxpbmUgcG9pbnRzPSI2IDkgMTIgMTUgMTggOSI+PC9wb2x5bGluZT48L3N2Zz4=')] bg-no-repeat bg-[position:right_1rem_center]">
+              {Object.keys(levels).map(l => <option key={l} value={l} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white">{l}</option>)}
             </select>
           </div>
-          <div className="sm:col-span-2">
-            <button type="submit" className="w-full h-full min-h-[48px] rounded-xl text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 shadow-brand-500/25 hover:shadow-brand-500/40">
-              <Plus size={18} /> Add
-            </button>
-          </div>
+          {editingSkillId ? (
+            <>
+              <div className="sm:col-span-2">
+                <button type="button" onClick={cancelEditSkill} className="w-full h-full min-h-[48px] rounded-xl text-zinc-700 dark:text-zinc-300 font-semibold text-sm border border-zinc-200 dark:border-zinc-800 transition hover:bg-zinc-50 dark:hover:bg-zinc-800/80 flex items-center justify-center gap-1.5">
+                  <X size={18} /> Cancel
+                </button>
+              </div>
+              <div className="sm:col-span-2">
+                <button type="submit" className="w-full h-full min-h-[48px] rounded-xl text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-1.5 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 shadow-brand-500/25">
+                  <Check size={18} /> Update
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="sm:col-span-2">
+              <button type="submit" className="w-full h-full min-h-[48px] rounded-xl text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 shadow-brand-500/25 hover:shadow-brand-500/40">
+                <Plus size={18} /> Add
+              </button>
+            </div>
+          )}
         </form>
       </div>
 
@@ -249,9 +309,14 @@ export default function Skills() {
                   <div className="space-y-4 w-full">
                     <div className="flex items-start justify-between">
                        <h3 className="font-display font-bold text-xl text-zinc-900 dark:text-white tracking-tight">{s.name}</h3>
-                       <button onClick={() => deleteSkill(s.id, s.name)} className="p-2 rounded-xl opacity-60 hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 -mr-2 -mt-2">
-                        <Trash2 size={16} />
-                      </button>
+                       <div className="flex items-center gap-1 -mr-2 -mt-2 z-10">
+                         <button onClick={() => startEditSkill(s)} className="p-2 rounded-xl text-zinc-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors" title="Edit Skill">
+                           <Pencil size={16} />
+                         </button>
+                         <button onClick={() => deleteSkill(s.id, s.name)} className="p-2 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Delete Skill">
+                           <Trash2 size={16} />
+                         </button>
+                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold ${getCategoryTheme(s.category).bg} ${getCategoryTheme(s.category).text}`}>

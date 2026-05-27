@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Zap, Mail, Lock, AlertCircle, CircuitBoard } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -6,7 +6,7 @@ import { useData } from "../contexts/DataContext";
 import { useNavigate } from "react-router-dom";
 
 export default function Auth() {
-  const { login, signup, loginDemo, isMock, signInWithGoogle, handleForgotPassword } = useAuth();
+  const { user, login, signup, loginDemo, isMock, signInWithGoogle, handleForgotPassword } = useAuth();
   const { profile, setProfile } = useData();
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
@@ -16,6 +16,12 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

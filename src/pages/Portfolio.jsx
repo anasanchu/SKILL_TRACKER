@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Briefcase, ExternalLink, Plus, Camera, Video, GitBranch, Globe, Trash2 } from "lucide-react";
+import { Briefcase, ExternalLink, Plus, Camera, Video, GitBranch, Globe, Trash2, Pencil, X } from "lucide-react";
 import { useData } from "../contexts/DataContext";
 
 const fadeUp = { hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
@@ -12,6 +12,7 @@ export default function Portfolio() {
   const attachmentRef = useRef(null);
 
   const [draft, setDraft] = useState({ name: "", desc: "", link: "", github: "", coverImage: "", attachments: [], skillIds: [] });
+  const [editingProjectId, setEditingProjectId] = useState(null);
 
   const handleCoverImage = e => {
     const file = e.target.files[0]; if (!file) return;
@@ -42,18 +43,59 @@ export default function Portfolio() {
     e.preventDefault();
     if (!draft.name.trim()) { addToast("Project name is required", "warn"); return; }
     const linkedSkills = skills.filter(skill => draft.skillIds.includes(skill.id)).map(skill => skill.name);
-    const newProject = { id: Date.now(), ...draft, skills: linkedSkills };
-    setProjects(p => [newProject, ...p]);
-    linkedSkills.forEach(skillName => {
-      const linkedSkill = skills.find(skill => skill.name === skillName);
-      addActivityEvent({ type: "project", skillId: linkedSkill?.id, skillName, projectId: newProject.id, projectName: newProject.name, label: "Portfolio project" });
-    });
-    if (!linkedSkills.length) {
-      addActivityEvent({ type: "project", projectId: newProject.id, projectName: newProject.name, label: "Portfolio project" });
+
+    if (editingProjectId) {
+      setProjects(prev => prev.map(p => {
+        if (p.id === editingProjectId) {
+          return {
+            ...p,
+            ...draft,
+            skills: linkedSkills
+          };
+        }
+        return p;
+      }));
+      addActivityEvent({ type: "project", projectId: editingProjectId, projectName: draft.name.trim(), label: "Updated portfolio project" });
+      setEditingProjectId(null);
+      addToast(`Project "${draft.name.trim()}" updated`, "success");
+    } else {
+      const newProject = { id: Date.now(), ...draft, skills: linkedSkills };
+      setProjects(p => [newProject, ...p]);
+      linkedSkills.forEach(skillName => {
+        const linkedSkill = skills.find(skill => skill.name === skillName);
+        addActivityEvent({ type: "project", skillId: linkedSkill?.id, skillName, projectId: newProject.id, projectName: newProject.name, label: "Portfolio project" });
+      });
+      if (!linkedSkills.length) {
+        addActivityEvent({ type: "project", projectId: newProject.id, projectName: newProject.name, label: "Portfolio project" });
+      }
+      addToast(`Project "${draft.name}" added`, "success");
     }
+
     setDraft({ name: "", desc: "", link: "", github: "", coverImage: "", attachments: [], skillIds: [] });
     setShowAdd(false);
-    addToast(`Project "${draft.name}" added`, "success");
+  };
+
+  const startEditProject = (p) => {
+    setEditingProjectId(p.id);
+    setDraft({
+      name: p.name || "",
+      desc: p.desc || "",
+      link: p.link || "",
+      github: p.github || "",
+      coverImage: p.coverImage || "",
+      attachments: p.attachments || [],
+      skillIds: p.skillIds || []
+    });
+    setShowAdd(true);
+    setTimeout(() => {
+      document.getElementById("portfolio-form-card")?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  };
+
+  const cancelEditProject = () => {
+    setEditingProjectId(null);
+    setDraft({ name: "", desc: "", link: "", github: "", coverImage: "", attachments: [], skillIds: [] });
+    setShowAdd(false);
   };
 
   const deleteProject = (id) => {
@@ -85,7 +127,7 @@ export default function Portfolio() {
       <AnimatePresence>
         {showAdd && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <form onSubmit={addProject} className="p-6 sm:p-8 rounded-[2rem] glass-card border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm relative overflow-hidden mb-8">
+            <form id="portfolio-form-card" onSubmit={addProject} className="p-6 sm:p-8 rounded-[2rem] glass-card border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm relative overflow-hidden mb-8">
                <div className="absolute inset-x-0 top-0 h-1 bg-brand-500 pointer-events-none" />
                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10">
                 <div className="md:col-span-4 flex flex-col gap-3">
@@ -171,8 +213,8 @@ export default function Portfolio() {
                     <input type="file" accept="image/*,video/*" ref={attachmentRef} className="hidden" onChange={handleAttachment} />
                   </div>
                   <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-zinc-200/50 dark:border-zinc-800/50">
-                    <button type="button" onClick={() => setShowAdd(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors">Cancel</button>
-                    <button type="submit" className="px-6 py-2.5 rounded-xl text-white font-semibold text-sm shadow-md transition-all active:scale-[0.98] bg-brand-500 hover:bg-brand-600 shadow-brand-500/25">Save Project</button>
+                    <button type="button" onClick={editingProjectId ? cancelEditProject : () => setShowAdd(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors border border-zinc-200 dark:border-zinc-800">Cancel</button>
+                    <button type="submit" className="px-6 py-2.5 rounded-xl text-white font-semibold text-sm shadow-md transition-all active:scale-[0.98] bg-brand-500 hover:bg-brand-600 shadow-brand-500/25">{editingProjectId ? "Update Project" : "Save Project"}</button>
                   </div>
                 </div>
               </div>
@@ -194,9 +236,14 @@ export default function Portfolio() {
         {projects.map(p => (
           <motion.div key={p.id} variants={fadeUp} className="rounded-[1.5rem] glass-card border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden flex flex-col group relative hover:shadow-lg transition-all duration-300 hover:border-brand-500/30">
             
-            <button onClick={() => deleteProject(p.id)} className="absolute top-4 right-4 z-10 p-2.5 rounded-xl bg-black/50 backdrop-blur-md text-white opacity-60 hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-red-500">
-              <Trash2 size={16} />
-            </button>
+            <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5">
+              <button onClick={() => startEditProject(p)} className="p-2.5 rounded-xl bg-black/60 backdrop-blur-md text-white hover:text-brand-400 transition-all" title="Edit Project">
+                <Pencil size={15} />
+              </button>
+              <button onClick={() => deleteProject(p.id)} className="p-2.5 rounded-xl bg-black/60 backdrop-blur-md text-red-400 hover:text-white hover:bg-red-500 transition-all" title="Delete Project">
+                <Trash2 size={15} />
+              </button>
+            </div>
 
             <div className="h-48 relative bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center overflow-hidden border-b border-zinc-200/50 dark:border-zinc-800/50">
               {p.coverImage ? (

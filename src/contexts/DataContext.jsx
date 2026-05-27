@@ -103,13 +103,13 @@ const createDemoData = () => {
         skills: ["React", "Tailwind CSS"],
       },
     ],
-    notes: {
-      [isoDay(today)]: "Refined the dashboard layout and connected weekly goals to skill growth.",
-      [isoDay(yesterday)]: "Reviewed React component structure and improved portfolio presentation.",
-      [isoDay(oneMonthAgo)]: "Configured Firebase collections, read rules, and hooked up listeners.",
-      [isoDay(twoMonthsAgo)]: "Sketched the dashboard grid layout using Tailwind.",
-      [isoDay(threeMonthsAgo)]: "Created basic HTML wireframes and research files.",
-    },
+    notes: [
+      { id: 501, date: isoDay(today), content: "Refined the dashboard layout and connected weekly goals to skill growth.", skillId: 101, skillName: "React" },
+      { id: 502, date: isoDay(yesterday), content: "Reviewed React component structure and improved portfolio presentation.", skillId: 102, skillName: "Tailwind CSS" },
+      { id: 503, date: isoDay(oneMonthAgo), content: "Configured Firebase collections, read rules, and hooked up listeners.", skillId: 103, skillName: "Firebase" },
+      { id: 504, date: isoDay(twoMonthsAgo), content: "Sketched the dashboard grid layout using Tailwind.", skillId: 102, skillName: "Tailwind CSS" },
+      { id: 505, date: isoDay(threeMonthsAgo), content: "Created basic HTML wireframes and research files.", skillId: 101, skillName: "React" }
+    ],
     weeklyGoals: [
       { id: 301, text: "Finish resume export polish", completed: true, status: "completed", createdAt: yesterday.toISOString(), skillId: 101, skillName: "React" },
       { id: 302, text: "Add one portfolio project", completed: false, status: "active", createdAt: today.toISOString(), skillId: 102, skillName: "Tailwind CSS" },
@@ -130,13 +130,27 @@ const createDemoData = () => {
 
 const demoStorageKey = "skill-tracker-demo-data";
 
+const normalizeNotes = (loadedNotes) => {
+  if (Array.isArray(loadedNotes)) return loadedNotes;
+  if (loadedNotes && typeof loadedNotes === 'object') {
+    return Object.entries(loadedNotes).map(([date, content], idx) => ({
+      id: `legacy-${date}-${idx}`,
+      date,
+      content: typeof content === 'string' ? content : (content?.content || ""),
+      skillId: "",
+      skillName: ""
+    }));
+  }
+  return [];
+};
+
 export const DataProvider = ({ children }) => {
   const { user } = useAuth();
 
   const [skills, setSkills] = useState([]);
   const [projects, setProjects] = useState([]);
   const [profile, setProfile] = useState(defaultProfile);
-  const [notes, setNotes] = useState({});
+  const [notes, setNotes] = useState([]);
   const [weeklyGoals, setWeeklyGoals] = useState([]);
   const [pastWeeklyGoals, setPastWeeklyGoals] = useState([]);
   const [weeklyGoalsLastRoll, setWeeklyGoalsLastRoll] = useState(null);
@@ -152,7 +166,7 @@ export const DataProvider = ({ children }) => {
       setSkills([]);
       setProjects([]);
       setProfile(defaultProfile);
-      setNotes({});
+      setNotes([]);
       setHasFetchedData(false);
       return;
     }
@@ -167,7 +181,7 @@ export const DataProvider = ({ children }) => {
       setSkills(demoData.skills || []);
       setProjects(demoData.projects || []);
       setProfile(demoData.profile || defaultProfile);
-      setNotes(demoData.notes || {});
+      setNotes(normalizeNotes(demoData.notes));
       setWeeklyGoals(demoData.weeklyGoals || []);
       setPastWeeklyGoals(demoData.pastWeeklyGoals || []);
       setActivityLog(demoData.activityLog || []);
@@ -182,8 +196,12 @@ export const DataProvider = ({ children }) => {
       if (!snapshot.exists()) {
         setSkills([]);
         setProjects([]);
-        setProfile(defaultProfile);
-        setNotes({});
+        setProfile({
+          ...defaultProfile,
+          name: user.displayName || "",
+          photo: user.photoURL || null,
+        });
+        setNotes([]);
         setHasFetchedData(true);
         return;
       }
@@ -198,7 +216,7 @@ export const DataProvider = ({ children }) => {
       setSkills(normalizedSkills);
       setProjects(data.projects || []);
       setProfile(data.profile || defaultProfile);
-      setNotes(data.notes || {});
+      setNotes(normalizeNotes(data.notes));
       setWeeklyGoals(data.weeklyGoals || []);
       setPastWeeklyGoals(data.pastWeeklyGoals || []);
       setActivityLog(data.activityLog || []);
@@ -430,8 +448,8 @@ export const DataProvider = ({ children }) => {
 
       // 3. Journals: +5 points for each entry in this month
       let journalsCount = 0;
-      Object.keys(notes || {}).forEach(dateStr => {
-        if (isSameMonth(dateStr)) journalsCount++;
+      (notes || []).forEach(note => {
+        if (note && note.date && isSameMonth(note.date)) journalsCount++;
       });
 
       // 4. Projects: +25 points for each project documented in this month

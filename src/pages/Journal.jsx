@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { NotebookPen, Plus, Calendar, Trash2 } from "lucide-react";
+import { NotebookPen, Plus, Calendar, Trash2, Pencil, X, Check } from "lucide-react";
 import { useData } from "../contexts/DataContext";
 
 const fadeUp = { hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
@@ -12,6 +12,7 @@ export default function Journal() {
   const [date, setDate] = useState(todayDate);
   const [content, setContent] = useState("");
   const [selectedSkill, setSelectedSkill] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState(null);
 
   useEffect(() => {
     if (!selectedSkill && skills.length > 0) {
@@ -23,35 +24,78 @@ export default function Journal() {
     e.preventDefault();
     if (!content.trim()) { addToast("Note cannot be empty", "warn"); return; }
     
-    setNotes(prev => ({
-      ...prev,
-      [date]: content.trim()
-    }));
-    
-    if (selectedSkill) {
-      const linkedSkill = skills.find(skill => skill.id === selectedSkill);
-      awardSkillXp(selectedSkill, 10);
-      addActivityEvent({ type: "journal", skillId: selectedSkill, skillName: linkedSkill?.name, noteDate: date });
+    // Validate future date
+    if (date > todayDate) {
+      addToast("Future-dated journal entries are not allowed", "warn");
+      return;
+    }
+
+    const linkedSkill = skills.find(skill => String(skill.id) === String(selectedSkill));
+
+    if (editingNoteId) {
+      setNotes(prev => prev.map(note => {
+        if (note.id === editingNoteId) {
+          return {
+            ...note,
+            date,
+            content: content.trim(),
+            skillId: selectedSkill ? Number(selectedSkill) : "",
+            skillName: linkedSkill ? linkedSkill.name : ""
+          };
+        }
+        return note;
+      }));
+      setEditingNoteId(null);
+      addToast("Journal entry updated!", "success");
     } else {
-      addActivityEvent({ type: "journal", noteDate: date });
+      const newNote = {
+        id: Date.now(),
+        date,
+        content: content.trim(),
+        skillId: selectedSkill ? Number(selectedSkill) : "",
+        skillName: linkedSkill ? linkedSkill.name : ""
+      };
+      setNotes(prev => [newNote, ...prev]);
+      
+      if (selectedSkill) {
+        awardSkillXp(Number(selectedSkill), 10);
+        addActivityEvent({ type: "journal", skillId: Number(selectedSkill), skillName: linkedSkill?.name, noteDate: date });
+      } else {
+        addActivityEvent({ type: "journal", noteDate: date });
+      }
+      addToast("Journal entry saved!", "success");
     }
 
     setContent("");
     if (date !== todayDate) setDate(todayDate);
-    addToast("Journal entry saved!", "success");
   };
 
-  const deleteNote = (targetDate) => {
-    setNotes(prev => {
-      const newNotes = { ...prev };
-      delete newNotes[targetDate];
-      return newNotes;
-    });
+  const startEditNote = (note) => {
+    setEditingNoteId(note.id);
+    setDate(note.date);
+    setContent(note.content);
+    setSelectedSkill(note.skillId || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelEdit = () => {
+    setEditingNoteId(null);
+    setDate(todayDate);
+    setContent("");
+    if (skills.length > 0) {
+      setSelectedSkill(skills[0].id);
+    } else {
+      setSelectedSkill("");
+    }
+  };
+
+  const deleteNote = (id) => {
+    setNotes(prev => prev.filter(note => note.id !== id));
     addToast("Entry deleted", "info");
   };
 
   // Sort notes by date descending
-  const sortedDates = Object.keys(notes).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const sortedNotes = [...notes].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <motion.div variants={fadeUp} initial="hidden" animate="visible" className="space-y-6 sm:space-y-8 max-w-4xl mx-auto">
@@ -71,7 +115,7 @@ export default function Journal() {
         <div className="absolute inset-x-0 top-0 h-1 bg-brand-500 pointer-events-none" />
         
         <h2 className="font-display font-bold mb-6 flex items-center gap-2 text-zinc-900 dark:text-white text-lg">
-          <NotebookPen size={18} className="text-brand-500" /> New Entry
+          <NotebookPen size={18} className="text-brand-500" /> {editingNoteId ? "Edit Journal Entry" : "New Entry"}
         </h2>
         <form onSubmit={saveNote} className="space-y-5 relative z-10">
           <div className="flex flex-col sm:flex-row gap-5">
@@ -81,6 +125,7 @@ export default function Journal() {
                 type="date" 
                 value={date} 
                 onChange={e => setDate(e.target.value)}
+                max={todayDate}
                 className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm glass-input outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-brand-500/50" 
               />
             </div>
@@ -100,9 +145,14 @@ export default function Journal() {
                className="w-full px-5 py-4 rounded-xl text-sm glass-input outline-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-brand-500/50 resize-none min-h-[120px]" 
              />
           </div>
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-end gap-3 pt-2">
+            {editingNoteId && (
+              <button type="button" onClick={cancelEdit} className="px-5 py-3 rounded-xl text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors flex items-center gap-1.5 border border-zinc-200 dark:border-zinc-800">
+                <X size={18} /> Cancel
+              </button>
+            )}
             <button type="submit" className="w-full sm:w-auto px-6 py-3 rounded-xl text-white font-semibold text-sm transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 shadow-brand-500/25">
-              <Plus size={18} /> Save Entry
+              {editingNoteId ? <Check size={18} /> : <Plus size={18} />} {editingNoteId ? "Update Entry" : "Save Entry"}
             </button>
           </div>
         </form>
@@ -111,7 +161,7 @@ export default function Journal() {
       <div className="space-y-6">
         <h2 className="font-display font-bold text-xl text-zinc-900 dark:text-white">Past Entries</h2>
         
-        {sortedDates.length === 0 ? (
+        {sortedNotes.length === 0 ? (
           <div className="py-16 text-center border-2 border-dashed rounded-[2rem] border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20">
             <NotebookPen size={48} className="mx-auto text-zinc-300 dark:text-zinc-700 mb-4" />
             <p className="text-zinc-500 dark:text-zinc-400 font-medium">Write your first entry to build a learning history.</p>
@@ -119,19 +169,24 @@ export default function Journal() {
         ) : (
           <div className="grid gap-5">
             <AnimatePresence>
-              {sortedDates.map(d => {
-                const dateObj = new Date(d);
-                const isToday = d === todayDate;
+              {sortedNotes.map(note => {
+                const dateObj = new Date(note.date);
+                const isToday = note.date === todayDate;
                 return (
-                  <motion.div key={d} variants={fadeUp} layout initial="hidden" animate="visible" exit={{ opacity: 0, scale: 0.95 }}
+                  <motion.div key={note.id} variants={fadeUp} layout initial="hidden" animate="visible" exit={{ opacity: 0, scale: 0.95 }}
                     className="p-6 rounded-[1.5rem] glass-card border border-zinc-200/80 dark:border-zinc-800/80 group relative hover:border-brand-500/30 transition-all duration-300">
                     
-                    <button onClick={() => deleteNote(d)} className="absolute top-4 right-4 p-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="absolute top-4 right-4 flex items-center gap-1 z-10">
+                      <button onClick={() => startEditNote(note)} className="p-2 rounded-xl text-zinc-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors" title="Edit Entry">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => deleteNote(note.id)} className="p-2 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Delete Entry">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
 
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl font-display shadow-sm ${
+                    <div className="flex items-center gap-4 mb-4 pr-20">
+                      <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl font-display shadow-sm shrink-0 ${
                          isToday 
                          ? "bg-brand-500 text-white shadow-brand-500/20" 
                          : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200/50 dark:border-zinc-700/50"
@@ -140,13 +195,20 @@ export default function Journal() {
                         <span className="text-xl font-black leading-none">{dateObj.getDate()}</span>
                       </div>
                       <div>
-                        <h3 className="font-bold text-zinc-900 dark:text-white">{dateObj.toLocaleString('en-US', { weekday: 'long' })}, {dateObj.getFullYear()}</h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-bold text-zinc-900 dark:text-white leading-tight">{dateObj.toLocaleString('en-US', { weekday: 'long' })}, {dateObj.getFullYear()}</h3>
+                          {note.skillName && (
+                            <span className="inline-flex items-center rounded-lg px-2.5 py-0.5 text-xs font-semibold bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300 border border-brand-500/20">
+                              {note.skillName}
+                            </span>
+                          )}
+                        </div>
                         {isToday && <span className="text-[10px] font-bold uppercase tracking-wider text-brand-500 mt-0.5 block">Today</span>}
                       </div>
                     </div>
                     
                     <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-zinc-600 dark:text-zinc-400 sm:ml-[4.5rem]">
-                      {notes[d]}
+                      {note.content}
                     </p>
                   </motion.div>
                 );
